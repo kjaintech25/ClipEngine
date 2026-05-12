@@ -2,7 +2,9 @@
 
 Personal creator monetization platform. One operator, many streamers — process long-form streams into 30 viral short clips per video, review and approve, push to YouTube Shorts / TikTok / Reels, track revenue.
 
-This repo is the **frontend + database**. The Python processor (yt-dlp + Whisper + Claude + ffmpeg) lives separately and polls the same Supabase project.
+Two parts in this repo:
+- **Next.js frontend** (this dir's `app/`, `components/`, `lib/`) — what you see in the browser.
+- **Python processor** ([`processor/`](./processor/)) — the background worker that turns URLs into clips.
 
 See [`ClipEngine_PRD_v1.0.md`](./ClipEngine_PRD_v1.0.md) for the full product spec.
 
@@ -39,10 +41,20 @@ Migrations:
 ## Local development
 
 ```bash
+# Frontend
 npm install
 cp .env.example .env.local   # fill in NEXT_PUBLIC_SUPABASE_URL + ANON_KEY
 npm run dev                  # http://localhost:3000
+
+# Processor (in a separate terminal)
+cd processor
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env         # fill in service-role + Anthropic + OpenAI keys
+python processor.py
 ```
+
+See [`processor/README.md`](./processor/README.md) for processor details.
 
 ## Routes
 
@@ -63,12 +75,13 @@ The creator dashboard (`/creators/[id]`) is deferred — once built, the `Creato
 
 ## What's not in this repo
 
-- The Python processor (yt-dlp → Whisper → Claude → ffmpeg → Supabase Storage)
-- Anthropic SDK — the Next.js app only reads + writes Supabase; all Claude calls happen processor-side
+- Anthropic SDK on the Next.js side — the frontend only reads + writes Supabase; all Claude calls happen in `processor/`
 - Auth — single-user app, RLS disabled on all tables, anon key has full r/w
+- Vercel deploy + auto-post to YouTube/TikTok/Instagram — Sprint 3 / Sprint 2
 
 ## Build log
 
 | Date | Notes |
 |---|---|
 | 2026-05-12 | Initial scaffold + Supabase project (`xqcnbpiexojncxicrtji`) + creator tagging |
+| 2026-05-12 | Sprint 1: Python processor (yt-dlp + OpenAI Whisper + Claude Sonnet 4.6 + ffmpeg + Supabase Storage upload). Letterbox 9:16. Retry button on failed jobs. |

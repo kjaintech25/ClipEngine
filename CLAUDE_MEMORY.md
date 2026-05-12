@@ -1,9 +1,14 @@
 # ClipEngine — Claude Memory
 
-Last updated: 2026-05-12 (initial scaffold)
+Last updated: 2026-05-12 (Sprint 1 — Python processor)
 
 ## Status
-MVP frontend scaffolded. Schema live. Python processor not yet built — this is the next major work item.
+Frontend + schema + Python processor scaffolded. Processor imports cleanly + boots locally. Still pending: Kush adds 3 API keys to `processor/.env`, runs his first real job.
+
+## Sprint plan
+1. **Sprint 1 (this one)** — Python processor MVP. ← SHIPPED
+2. Sprint 2 — Auto-post (V4) + creator dashboard at `/creators/[id]`.
+3. Sprint 3 — Scout (V3) + Analytics (V5) + Vercel production deploy.
 
 ## Repo / infra
 - Repo: https://github.com/kjaintech25/ClipEngine
@@ -36,11 +41,20 @@ Next.js 14 App Router + TS + Tailwind + Supabase JS. No Anthropic SDK in this re
 - `lib/hooks/use{Jobs,JobStatus,Clips}Realtime.ts` — three realtime hooks
 - `supabase/migrations/000{1,2}*.sql` — schema source of truth
 
+## Processor (Sprint 1)
+- Code lives in `processor/` subdir of this repo.
+- Stack: yt-dlp + OpenAI Whisper API + Claude Sonnet 4.6 + ffmpeg + supabase-py.
+- 9:16 conversion = **letterbox** (black bars). Smart-crop with face tracking deferred to Sprint 3+.
+- Claude model: `claude-sonnet-4-6` (PRD said `claude-sonnet-4-20250514` — that's a Sonnet 4.0 ID. Upgraded to current Sonnet 4.6).
+- Hosting: local Mac only for Sprint 1. Run with `cd processor && source .venv/bin/activate && python processor.py`. Revisit Railway in Sprint 3.
+- `.env` needs 3 keys filled in by Kush (service-role, Anthropic, OpenAI). See `processor/.env.example` for links.
+- Service-role key location: https://supabase.com/dashboard/project/xqcnbpiexojncxicrtji/settings/api-keys (NOT the anon key — different one).
+- Cost estimate: ~$0.50/video processed (Whisper $0.36 + Claude $0.10ish). 20 videos/month ≈ $10/month.
+
 ## Open items / next moves
-1. Build the Python processor (PRD §6) — polls `jobs where status='pending'`, runs yt-dlp + Whisper + Claude + ffmpeg, uploads to `clips/` bucket, inserts into `clips` table.
-2. Decide processor host: local machine vs Railway.app (open question in PRD §9).
-3. Build the creator dashboard at `/creators/[id]` so the `CreatorChip` becomes clickable.
-4. Clip aspect ratio: auto-crop to 9:16 or letterbox (open question in PRD §9).
+1. Kush fills in `processor/.env` and runs his first real job to validate the full pipeline. ← Sprint 1 acceptance.
+2. Decide processor host: local Mac (current) vs Railway.app. Open question in PRD §9. Revisit in Sprint 3.
+3. Sprint 2 — auto-post integration + creator dashboard at `/creators/[id]`. Start TikTok + Instagram API approval flows on day 1 (they take weeks).
 
 ## Useful SQL snippets
 ```sql
@@ -50,4 +64,7 @@ truncate analytics_snapshots, posts, clips, jobs, projects, creators restart ide
 -- See projects + their creators
 select p.name, p.streamer_name, c.name as creator_name, c.platform
   from projects p left join creators c on c.id = p.creator_id;
+
+-- Manually re-queue a failed job (or use the Retry button in the UI)
+update jobs set status='pending', error_message=null where id='...';
 ```

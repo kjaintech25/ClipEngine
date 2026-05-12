@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCheck, Loader2 } from "lucide-react";
+import { CheckCheck, Loader2, RotateCw } from "lucide-react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { useJobStatus } from "@/lib/hooks/useJobStatus";
 import { useClipsRealtime } from "@/lib/hooks/useClipsRealtime";
@@ -19,6 +19,7 @@ export function ClipsViewer({
   const job = useJobStatus(initialJob);
   const clips = useClipsRealtime(initialJob.id, initialClips);
   const [bulkLoading, setBulkLoading] = useState(false);
+  const [retryLoading, setRetryLoading] = useState(false);
 
   const approvedCount = clips.filter((c) => c.approved).length;
 
@@ -31,6 +32,17 @@ export function ClipsViewer({
       await supabase.from("clips").update({ approved: true }).in("id", ids);
     }
     setBulkLoading(false);
+  }
+
+  async function retryJob() {
+    if (retryLoading) return;
+    setRetryLoading(true);
+    const supabase = supabaseBrowser();
+    await supabase
+      .from("jobs")
+      .update({ status: "pending", error_message: null })
+      .eq("id", job.id);
+    setRetryLoading(false);
   }
 
   return (
@@ -51,25 +63,41 @@ export function ClipsViewer({
                 (job.error_message || "Job failed. Check the processor logs.")}
             </div>
           </div>
-          {clips.length > 0 && (
-            <button
-              onClick={bulkApprove}
-              className="btn-accent disabled:opacity-50"
-              disabled={bulkLoading || approvedCount === clips.length}
-            >
-              {bulkLoading ? (
-                <>
+          <div className="flex items-center gap-2 shrink-0">
+            {job.status === "failed" && (
+              <button
+                onClick={retryJob}
+                className="btn-ghost disabled:opacity-50"
+                disabled={retryLoading}
+              >
+                {retryLoading ? (
                   <Loader2 size={14} className="animate-spin" />
-                  <span>Approving…</span>
-                </>
-              ) : (
-                <>
-                  <CheckCheck size={14} strokeWidth={2.5} />
-                  <span>Approve all ({clips.length - approvedCount})</span>
-                </>
-              )}
-            </button>
-          )}
+                ) : (
+                  <RotateCw size={14} strokeWidth={2} />
+                )}
+                <span>{retryLoading ? "Retrying…" : "Retry"}</span>
+              </button>
+            )}
+            {clips.length > 0 && (
+              <button
+                onClick={bulkApprove}
+                className="btn-accent disabled:opacity-50"
+                disabled={bulkLoading || approvedCount === clips.length}
+              >
+                {bulkLoading ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin" />
+                    <span>Approving…</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCheck size={14} strokeWidth={2.5} />
+                    <span>Approve all ({clips.length - approvedCount})</span>
+                  </>
+                )}
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -112,8 +140,8 @@ function EmptyClips({ status }: { status: string }) {
             JOB FAILED
           </div>
           <p className="font-body text-xs text-muted mt-3 max-w-sm mx-auto">
-            No clips were generated. Check the Python processor logs and retry
-            the URL from the project page.
+            No clips were generated. Check the processor logs, then hit Retry in
+            the banner above to re-queue this job.
           </p>
         </>
       ) : (
