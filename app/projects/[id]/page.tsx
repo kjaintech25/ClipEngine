@@ -2,9 +2,10 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft, ExternalLink } from "lucide-react";
 import { supabaseServer } from "@/lib/supabase/server";
-import type { Job, Project } from "@/lib/types";
+import type { Job, ProjectWithCreator } from "@/lib/types";
 import { ProcessVideoForm } from "@/components/ProcessVideoForm";
 import { JobsList } from "@/components/JobsList";
+import { CreatorChip } from "@/components/CreatorChip";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +13,13 @@ export default async function Page({ params }: { params: { id: string } }) {
   const supabase = supabaseServer();
 
   const [projectRes, jobsRes] = await Promise.all([
-    supabase.from("projects").select("*").eq("id", params.id).single(),
+    supabase
+      .from("projects")
+      .select(
+        "*, creator:creators(id, name, platform, channel_url)",
+      )
+      .eq("id", params.id)
+      .single(),
     supabase
       .from("jobs")
       .select("*")
@@ -24,7 +31,7 @@ export default async function Page({ params }: { params: { id: string } }) {
     return notFound();
   }
 
-  const project = projectRes.data as Project;
+  const project = projectRes.data as ProjectWithCreator;
   const jobs = (jobsRes.data ?? []) as Job[];
 
   return (
@@ -51,17 +58,22 @@ export default async function Page({ params }: { params: { id: string } }) {
                 project.name?.toUpperCase() ||
                 "UNTITLED"}
             </h1>
-            {project.channel_url && (
-              <a
-                href={project.channel_url}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1.5 mt-2 font-body text-xs text-muted hover:text-accent transition"
-              >
-                {project.channel_url}
-                <ExternalLink size={11} />
-              </a>
-            )}
+            <div className="flex flex-wrap items-center gap-3 mt-3">
+              {project.creator && (
+                <CreatorChip creator={project.creator} size="md" />
+              )}
+              {project.channel_url && (
+                <a
+                  href={project.channel_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 font-body text-xs text-muted hover:text-accent transition"
+                >
+                  {project.channel_url}
+                  <ExternalLink size={11} />
+                </a>
+              )}
+            </div>
           </div>
         </div>
       </div>

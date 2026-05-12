@@ -26,6 +26,9 @@ export function ProjectsHome({
     0,
   );
   const activeCount = projects.filter((p) => p.status !== "archived").length;
+  const creatorCount = new Set(
+    projects.map((p) => p.creator?.id).filter(Boolean),
+  ).size;
 
   return (
     <>
@@ -49,8 +52,9 @@ export function ProjectsHome({
             <span>New Project</span>
           </button>
         </div>
-        <div className="px-8 pb-5 grid grid-cols-3 gap-4 max-w-3xl">
+        <div className="px-8 pb-5 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl">
           <Stat label="Active projects" value={activeCount} />
+          <Stat label="Creators tagged" value={creatorCount} />
           <Stat label="Videos processed" value={totalJobs} />
           <Stat label="Clips generated" value={totalClips} accent />
         </div>
@@ -74,6 +78,7 @@ export function ProjectsHome({
                 project={p}
                 clipCount={p.clips?.[0]?.count ?? 0}
                 jobCount={p.jobs?.[0]?.count ?? 0}
+                creator={p.creator}
               />
             ))}
           </div>

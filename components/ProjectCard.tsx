@@ -1,17 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import type { Project } from "@/lib/types";
+import type { Creator, Project } from "@/lib/types";
 import { formatRelative } from "@/lib/url";
+import { CreatorChip } from "./CreatorChip";
+
+type CreatorLite = Pick<Creator, "id" | "name" | "platform" | "channel_url">;
 
 export function ProjectCard({
   project,
   clipCount,
   jobCount,
+  creator,
 }: {
   project: Project;
   clipCount: number;
   jobCount: number;
+  creator: CreatorLite | null;
 }) {
   const initial = (project.streamer_name || project.name || "?")
     .charAt(0)
@@ -62,6 +67,11 @@ export function ProjectCard({
         {project.name && project.streamer_name && project.name !== project.streamer_name && (
           <div className="font-body text-[11px] text-muted truncate mt-0.5">
             {project.name}
+          </div>
+        )}
+        {creator && (
+          <div className="mt-2">
+            <CreatorChip creator={creator} />
           </div>
         )}
         <div className="mt-3 grid grid-cols-2 gap-2 pt-3 border-t border-border">

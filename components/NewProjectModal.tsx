@@ -38,6 +38,30 @@ export function NewProjectModal({ onClose }: { onClose: () => void }) {
         ? `${parsed.streamer_name} — ${new Date().toLocaleDateString(undefined, { month: "short", year: "numeric" })}`
         : "Untitled project");
 
+    // Find-or-create the creator tag so multiple projects for the same
+    // streamer are linked under one canonical entity.
+    let creatorId: string | null = null;
+    if (parsed.channel_url && parsed.streamer_name) {
+      const { data: creator, error: creatorErr } = await supabase
+        .from("creators")
+        .upsert(
+          {
+            name: parsed.streamer_name,
+            platform: parsed.platform,
+            channel_url: parsed.channel_url,
+          },
+          { onConflict: "channel_url" },
+        )
+        .select("id")
+        .single();
+      if (creatorErr) {
+        setError(`Failed to tag creator: ${creatorErr.message}`);
+        setSubmitting(false);
+        return;
+      }
+      creatorId = creator?.id ?? null;
+    }
+
     const { data: project, error: projErr } = await supabase
       .from("projects")
       .insert({
@@ -45,6 +69,7 @@ export function NewProjectModal({ onClose }: { onClose: () => void }) {
         streamer_name: parsed.streamer_name,
         platform: parsed.platform,
         channel_url: parsed.channel_url,
+        creator_id: creatorId,
         status: "active",
       })
       .select()

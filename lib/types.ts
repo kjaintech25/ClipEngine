@@ -2,6 +2,21 @@ export type JobStatus = "pending" | "processing" | "done" | "failed";
 export type ProjectStatus = "active" | "archived";
 export type Platform = "youtube" | "twitch" | "both" | "unknown";
 
+export type Creator = {
+  id: string;
+  name: string | null;
+  platform: Platform | string | null;
+  channel_url: string | null;
+  channel_id: string | null;
+  subscriber_count: number | null;
+  avg_viewers: number | null;
+  monthly_growth_pct: number | null;
+  clip_program_detected: boolean | null;
+  opportunity_score: number | null;
+  score_reason: string | null;
+  discovered_at: string;
+};
+
 export type Project = {
   id: string;
   name: string | null;
@@ -10,7 +25,12 @@ export type Project = {
   channel_url: string | null;
   thumbnail_url: string | null;
   status: ProjectStatus | string | null;
+  creator_id: string | null;
   created_at: string;
+};
+
+export type ProjectWithCreator = Project & {
+  creator: Pick<Creator, "id" | "name" | "platform" | "channel_url"> | null;
 };
 
 export type Job = {
@@ -43,4 +63,5 @@ export type Clip = {
 
 export type ProjectWithClipCount = Project & {
   clips: { count: number }[];
+  creator: Pick<Creator, "id" | "name" | "platform" | "channel_url"> | null;
 };
