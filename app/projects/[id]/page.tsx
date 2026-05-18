@@ -60,7 +60,11 @@ export default async function Page({ params }: { params: { id: string } }) {
             </h1>
             <div className="flex flex-wrap items-center gap-3 mt-3">
               {project.creator && (
-                <CreatorChip creator={project.creator} size="md" />
+                <CreatorChip
+                  creator={project.creator}
+                  size="md"
+                  href={`/creators/${project.creator.id}`}
+                />
               )}
               {project.channel_url && (
                 <a

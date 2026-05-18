@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, FolderGit2, Send, Telescope } from "lucide-react";
+import { BarChart3, FolderGit2, Send, Telescope, Users } from "lucide-react";
 
 const NAV = [
   { href: "/", label: "Projects", icon: FolderGit2, match: (p: string) => p === "/" || p.startsWith("/projects") },
+  { href: "/creators", label: "Creators", icon: Users, match: (p: string) => p.startsWith("/creators") },
   { href: "/scout", label: "Scout", icon: Telescope, match: (p: string) => p.startsWith("/scout") },
   { href: "/posts", label: "Posts", icon: Send, match: (p: string) => p.startsWith("/posts") },
   { href: "/analytics", label: "Analytics", icon: BarChart3, match: (p: string) => p.startsWith("/analytics") },

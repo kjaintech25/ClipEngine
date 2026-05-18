@@ -65,3 +65,12 @@ export type ProjectWithClipCount = Project & {
   clips: { count: number }[];
   creator: Pick<Creator, "id" | "name" | "platform" | "channel_url"> | null;
 };
+
+export type ProjectWithCounts = Project & {
+  clips: { count: number }[];
+  jobs: { count: number }[];
+};
+
+export type CreatorWithProjects = Creator & {
+  projects: { id: string; clips: { count: number }[] }[];
+};
