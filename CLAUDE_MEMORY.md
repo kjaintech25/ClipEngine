@@ -1,14 +1,23 @@
 # ClipEngine — Claude Memory
 
-Last updated: 2026-05-12 (Sprint 1 — Python processor)
+Last updated: 2026-05-18 (Sprint 2 — Post Manager + Creator Dashboard)
 
 ## Status
-Frontend + schema + Python processor scaffolded. Processor imports cleanly + boots locally. Still pending: Kush adds 3 API keys to `processor/.env`, runs his first real job.
+Frontend + schema + processor + creator dashboard + Post Manager all built. Still pending Kush: (1) add 3 API keys to `processor/.env` and run first real job; (2) Google Cloud OAuth setup to make YouTube posting live (start of Sprint 3).
 
 ## Sprint plan
-1. **Sprint 1 (this one)** — Python processor MVP. ← SHIPPED
-2. Sprint 2 — Auto-post (V4) + creator dashboard at `/creators/[id]`.
-3. Sprint 3 — Scout (V3) + Analytics (V5) + Vercel production deploy.
+1. Sprint 1 — Python processor MVP. ✅ SHIPPED
+2. **Sprint 2** — Post Manager + Creator Dashboard. ✅ SHIPPED
+3. Sprint 3 — Scout (V3) + Analytics (V5) + Vercel deploy + flip YouTube posting live + TikTok/IG.
+
+## Sprint 2 notes
+- `/creators` index + `/creators/[id]` dashboard. CreatorChip is clickable (optional `href` prop).
+- Post Manager at `/posts`: Queue (approved, unposted clips) + Published sections. "Post now" → `posts` row status `queued`; "Schedule" → status `scheduled` + `scheduled_for`.
+- Post statuses: `queued | scheduled | posting | posted | failed`. Platform values: `youtube_shorts | tiktok | instagram_reels` (only youtube_shorts active).
+- Migration 0003: added `posts.error_message`, `posts.created_at`; `posts` on realtime publication.
+- Processor now has a 2nd job: a posts poller. Jobs take priority; when idle it publishes due posts. **YouTube code is dormant** — `youtube_configured()` gates it; with no `YOUTUBE_*` env vars it logs "youtube not configured — skipping" and leaves posts alone.
+- New processor files: `youtube_client.py`, `youtube_auth.py` (one-time OAuth helper), `post_pipeline.py`.
+- YouTube setup steps are in `processor/README.md` ("YouTube setup" section). TikTok + Instagram = Kush starts approval applications now, build in Sprint 3.
 
 ## Repo / infra
 - Repo: https://github.com/kjaintech25/ClipEngine

@@ -1,8 +1,10 @@
 # ClipEngine Processor
 
-The background worker that polls Supabase for pending jobs, downloads each video, transcribes it, asks Claude to pick 30 viral moments, cuts the clips, converts to 9:16, and uploads everything back to Supabase.
+The background worker. Two jobs:
+1. **Clip generation** — polls for pending jobs, downloads each video, transcribes it, asks Claude to pick 30 viral moments, cuts the clips, converts to 9:16, uploads to Supabase.
+2. **Publishing** — polls for due posts (from the Post Manager screen) and uploads them to YouTube Shorts. *Dormant until you do the YouTube setup below.*
 
-Runs locally on your Mac. The Next.js frontend never sees this — it just watches Supabase and the UI updates live as clips appear.
+Runs locally on your Mac. The Next.js frontend never sees this — it just watches Supabase and the UI updates live.
 
 ## One-time setup
 
@@ -49,6 +51,8 @@ For each job:
 6. **cut** — for each spec: ffmpeg cut → 9:16 letterbox → thumbnail → Supabase Storage upload → DB row
 7. **done** — flip `processing` → `done`. The UI sees this via realtime instantly.
 
+When no jobs are pending, the processor checks for **due posts** (status `queued`, or `scheduled` with `scheduled_for` in the past), downloads the clip, and uploads it to YouTube. If YouTube isn't configured it just logs `youtube not configured — skipping` and leaves the posts untouched.
+
 ## Logs
 
 Structured one-liner per step:
@@ -78,8 +82,33 @@ Common errors:
 - `All N clip specs failed validation` — Claude returned junk; usually a transient model issue. Retry.
 - `403 Unauthorized` / `Invalid JWT` — Service role key in `.env` is wrong. Re-copy from Supabase dashboard.
 
+## YouTube setup
+
+Posting to YouTube is **optional and dormant** until you do this. The processor runs clip generation fine without it. Do this once when you're ready to auto-post (planned for the start of Sprint 3).
+
+1. Go to https://console.cloud.google.com/ and create a new project (call it "ClipEngine").
+2. **Enable the API:** APIs & Services → Library → search "YouTube Data API v3" → Enable.
+3. **OAuth consent screen:** APIs & Services → OAuth consent screen → choose "External" → fill in app name "ClipEngine" + your email → Save. Under "Test users" add your own Google account (the one that owns your YouTube channel).
+4. **Create credentials:** APIs & Services → Credentials → Create Credentials → OAuth client ID → Application type **"Desktop app"** → Create. Copy the **Client ID** and **Client secret**.
+5. Paste those into `.env` as `YOUTUBE_CLIENT_ID` and `YOUTUBE_CLIENT_SECRET`.
+6. Run the one-time auth helper:
+   ```bash
+   source .venv/bin/activate
+   python youtube_auth.py
+   ```
+   A browser opens — sign in with your channel's Google account and approve. The script prints a refresh token.
+7. Paste that into `.env` as `YOUTUBE_REFRESH_TOKEN`.
+8. Restart `python processor.py` — it now prints `youtube posting: enabled` and will publish queued posts.
+
+> Note: while your OAuth consent screen is in "Testing" mode, the refresh token expires after 7 days. To make it permanent, click "Publish app" on the OAuth consent screen (no Google review needed for a personal `youtube.upload` scope used only by you).
+
+## Costs (posting)
+
+YouTube Data API uploads are free, but each `videos.insert` costs **1,600 quota units** against a default daily budget of 10,000 — so ~6 uploads/day out of the box. Request a quota increase in Google Cloud if you need more.
+
 ## Not yet built
 
+- TikTok + Instagram posting (their APIs need weeks of app approval — Sprint 3)
 - Concurrency / multiple workers (single worker is fine for one operator)
 - Smart 9:16 crop with face/object tracking (current letterbox preserves the full frame)
 - Hosted version (Railway etc.) — TBD in Sprint 3

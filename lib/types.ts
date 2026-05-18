@@ -74,3 +74,47 @@ export type ProjectWithCounts = Project & {
 export type CreatorWithProjects = Creator & {
   projects: { id: string; clips: { count: number }[] }[];
 };
+
+export type PostStatus =
+  | "queued"
+  | "scheduled"
+  | "posting"
+  | "posted"
+  | "failed";
+
+export type PostPlatform = "youtube_shorts" | "tiktok" | "instagram_reels";
+
+export type Post = {
+  id: string;
+  clip_id: string;
+  platform: PostPlatform | string;
+  platform_post_id: string | null;
+  status: PostStatus | string;
+  posted_at: string | null;
+  scheduled_for: string | null;
+  title_used: string | null;
+  description_used: string | null;
+  error_message: string | null;
+  created_at: string | null;
+};
+
+export type PostWithClip = Post & {
+  clip:
+    | (Pick<Clip, "id" | "title" | "thumbnail_url" | "video_url"> & {
+        project: Pick<Project, "id" | "name" | "streamer_name"> | null;
+      })
+    | null;
+};
+
+export type ApprovedClip = Pick<
+  Clip,
+  | "id"
+  | "title"
+  | "description"
+  | "hashtags"
+  | "thumbnail_url"
+  | "video_url"
+  | "duration_secs"
+> & {
+  project: Pick<Project, "id" | "name" | "streamer_name"> | null;
+};

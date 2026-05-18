@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -77,3 +78,53 @@ def upload_to_storage(
             },
         )
     return supabase.storage.from_("clips").get_public_url(storage_path)
+
+
+# --- Posts (Sprint 2) ---------------------------------------------------
+
+
+def count_due_posts(supabase: Client) -> int:
+    """How many posts are ready to publish right now."""
+    now = datetime.now(timezone.utc).isoformat()
+    res = (
+        supabase.table("posts")
+        .select("id", count="exact", head=True)
+        .or_(f"status.eq.queued,and(status.eq.scheduled,scheduled_for.lte.{now})")
+        .execute()
+    )
+    return res.count or 0
+
+
+def fetch_due_post(supabase: Client) -> dict | None:
+    """Oldest post ready to publish: queued now, or scheduled and due."""
+    now = datetime.now(timezone.utc).isoformat()
+    res = (
+        supabase.table("posts")
+        .select("*")
+        .or_(f"status.eq.queued,and(status.eq.scheduled,scheduled_for.lte.{now})")
+        .order("scheduled_for", desc=False)
+        .limit(1)
+        .execute()
+    )
+    return res.data[0] if res.data else None
+
+
+def claim_post(supabase: Client, post_id: str) -> bool:
+    """Atomically flip queued/scheduled → posting. True if we claimed it."""
+    res = (
+        supabase.table("posts")
+        .update({"status": "posting", "error_message": None})
+        .eq("id", post_id)
+        .in_("status", ["queued", "scheduled"])
+        .execute()
+    )
+    return bool(res.data)
+
+
+def update_post(supabase: Client, post_id: str, **fields: Any) -> None:
+    supabase.table("posts").update(fields).eq("id", post_id).execute()
+
+
+def fetch_clip(supabase: Client, clip_id: str) -> dict | None:
+    res = supabase.table("clips").select("*").eq("id", clip_id).single().execute()
+    return res.data

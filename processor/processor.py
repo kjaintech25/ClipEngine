@@ -19,7 +19,9 @@ from dotenv import load_dotenv
 
 import ffmpeg_utils
 import pipeline
+import post_pipeline
 import supabase_client
+import youtube_client
 
 POLL_INTERVAL_SECS = 5
 REQUIRED_ENV = (
@@ -54,21 +56,41 @@ def main() -> None:
     signal.signal(signal.SIGTERM, _handle_sigint)
 
     supabase = supabase_client.get_client()
+    yt_ready = youtube_client.youtube_configured()
     print(f"clipengine processor started. polling every {POLL_INTERVAL_SECS}s. ctrl+c to stop.", flush=True)
+    print(f"youtube posting: {'enabled' if yt_ready else 'not configured (jobs still run)'}", flush=True)
+
+    warned_youtube = False
 
     while not _shutdown:
+        # Jobs take priority over posts.
         job = supabase_client.fetch_pending_job(supabase)
-        if job is None:
-            time.sleep(POLL_INTERVAL_SECS)
+        if job is not None:
+            if supabase_client.claim_job(supabase, job["id"]):
+                print(f"\n--- picked up job {job['id']} ---", flush=True)
+                pipeline.process_job(supabase, job)
+                print(f"--- finished job {job['id']} ---\n", flush=True)
             continue
 
-        if not supabase_client.claim_job(supabase, job["id"]):
-            # Lost the race (shouldn't happen with one worker, but cheap to check).
-            continue
+        # No job pending — check for a post that's due to publish.
+        post = supabase_client.fetch_due_post(supabase)
+        if post is not None:
+            if youtube_client.youtube_configured():
+                if supabase_client.claim_post(supabase, post["id"]):
+                    print(f"\n--- publishing post {post['id']} ---", flush=True)
+                    post_pipeline.process_post(supabase, post)
+                    print(f"--- finished post {post['id']} ---\n", flush=True)
+                continue
+            elif not warned_youtube:
+                due = supabase_client.count_due_posts(supabase)
+                print(
+                    f"youtube not configured — skipping {due} due post(s). "
+                    "Add YOUTUBE_* keys to .env and run youtube_auth.py to enable posting.",
+                    flush=True,
+                )
+                warned_youtube = True
 
-        print(f"\n--- picked up job {job['id']} ---", flush=True)
-        pipeline.process_job(supabase, job)
-        print(f"--- finished job {job['id']} ---\n", flush=True)
+        time.sleep(POLL_INTERVAL_SECS)
 
     print("processor exited cleanly.", flush=True)
 

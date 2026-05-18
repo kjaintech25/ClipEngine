@@ -85,3 +85,4 @@ The creator dashboard (`/creators/[id]`) is deferred — once built, the `Creato
 |---|---|
 | 2026-05-12 | Initial scaffold + Supabase project (`xqcnbpiexojncxicrtji`) + creator tagging |
 | 2026-05-12 | Sprint 1: Python processor (yt-dlp + OpenAI Whisper + Claude Sonnet 4.6 + ffmpeg + Supabase Storage upload). Letterbox 9:16. Retry button on failed jobs. |
+| 2026-05-18 | Sprint 2: Creator Dashboard (`/creators`, `/creators/[id]`) + Post Manager (`/posts`). Processor gains a posts poller + dormant YouTube Shorts upload. Migration 0003. |
